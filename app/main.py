@@ -3,6 +3,9 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
+import time
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 app = FastAPI()
 
@@ -10,8 +13,21 @@ class Post(BaseModel):
   title: str
   content: str
   published: bool = True
-  rating: Optional[int] = None
 
+
+while True:
+  try:
+    conn = psycopg2.connect(host='localhost',database='fastapi_db',user='postgres', password='2006',cursor_factory=RealDictCursor)
+
+    cursor = conn.cursor();
+    print("database connection successful")
+    break
+
+  except Exception as e:
+    print("connection to database failed")
+    time.sleep(2)
+    conn.close()
+  
 
 # request get method url: "/"
 #also order mattters when writing larger codes with multiple links
@@ -44,16 +60,19 @@ async def root():
 
 @app.get("/posts")
 def get_posts():
-  return {"data":my_posts};
+  cursor.execute("""SELECT * FROM posts""")
+  posts=cursor.fetchall()
+  return {"data":posts};
 
 ##---------------- creation of post
 
 @app.post("/posts",status_code=status.HTTP_201_CREATED)
 def create_posts(post:Post):
-  post_dict=post.model_dump()
-  post_dict["id"]=randrange(0,1000000)
-  my_posts.append(post_dict)
-  return {"data":post_dict}; 
+  cursor.execute(("""INSERT INTO posts(title,content,published) VALUES (%s,%s,%s) RETURNING * """),(post.title,post.content,post.published))
+  new_post =cursor.fetchone() 
+  conn.commit()
+
+  return {"data":new_post}; 
 
 #title str, content str,category,bool idk idk
 
@@ -68,39 +87,38 @@ def get_latest_post():
 
 @app.get("/posts/{id}")
 def get_post_each(id:int):
-
-
-  fpost = find_post_byid(id);
+  cursor.execute("""SELECT * FROM posts WHERE id = %s """,(str(id)))
+  fpost = cursor.fetchone()
   if not fpost:
    #res.status_code = status.HTTP_404_NOT_FOUND;
    #return{"message":f"post with {id} is not found"};
-   raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"pst with invalid id")
-  print(id);
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with invalid id")
   return {"post_detail":fpost};
 
 
-##----------deletion of post by id linear search
+##----------deletion of post
 
 @app.delete("/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
 def delete_posts(id: int):
-  #delte post
-  #finding index through linear search
-  index = find_index_post(id);
+  cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *""",(str(id)))
+  deleted_post = cursor.fetchone()
+  conn.commit()
 
-  if index == None:
+  if deleted_post == None:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id: {id} does not exist")
-  
-  my_posts.pop(index)
+
   return Response(status_code=status.HTTP_204_NO_CONTENT);
 
 ##---------- update post by id linear search
 
 @app.put("/posts/{id}")
 def update_post(id: int,post: Post):
-
+  cursor.execute("""UPDATE FROM posts SET title = %s, content = %s,published = %s RETURNING *""",(str(id)))
+  deleted_post = cursor.fetchone()
+  conn.commit()
   index = find_index_post(id);
 
-  if index == None:
+  if  == None:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id: {id} does not exist")
   
   post_dict = post.model_dump()
