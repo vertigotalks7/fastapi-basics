@@ -6,20 +6,13 @@ from random import randrange
 import time
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from . import models
-from .database import ENGINE , SessionLocal
+from app import models
+from app.database import ENGINE , get_db
 from sqlalchemy.orm import Session
 
+app = FastAPI()
 models.Base.metadata.create_all(bind=ENGINE)
 
-app = FastAPI()
-
-def get_db():
-  db = SessionLocal()
-  try:
-    yield db
-  finally:
-    db.close()
 
 class Post(BaseModel):
   title: str
@@ -39,7 +32,7 @@ while True:
     print("connection to database failed")
     time.sleep(2)
     conn.close()
-  
+
 
 # request get method url: "/"
 #also order mattters when writing larger codes with multiple links
@@ -71,7 +64,9 @@ async def root():
 
 @app.get("/sqlalchemy")
 def test_posts(db: Session = Depends(get_db)):
-  return {"status":"success"}
+  posts = db.query(models.Post)
+  print(posts)
+  return {"data":"s"}
 
 
 ##----------- display all 
