@@ -24,5 +24,7 @@ class UserCreate(BaseModel):
 class Userout(BaseModel):
   email: EmailStr
   id: int
+  created_at: datetime
+
   class Config:
     from_attributes = True

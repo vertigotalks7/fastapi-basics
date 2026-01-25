@@ -1,14 +1,14 @@
 from fastapi import FastAPI,Response,status,HTTPException, Depends
 from fastapi.params import Body
-from pydantic import BaseModel
 from typing import Optional, List
 from random import randrange
 import time
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from app import models,schemas
+from app import models,schemas,utils
 from app.database import ENGINE , get_db
 from sqlalchemy.orm import Session
+
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=ENGINE)
@@ -165,9 +165,13 @@ def update_post(id: int, updated_post: schemas.PostCreate,db: Session = Depends(
 
 #-------------OPERATIONS ON USERS TABLE
 
-@app.post("/users",status_code=status.HTTP_201_CREATED)
+@app.post("/users",status_code=status.HTTP_201_CREATED,response_model=schemas.Userout)
 def create_user(user: schemas.UserCreate ,db: Session = Depends(get_db)):
-  print(user.model_dump())
+
+  #hashing the password - user.password
+  hashed_password = utils.hash_password(user.password)
+  user.password = hashed_password
+
   new_user = models.User(**user.model_dump())
   db.add(new_user)
   db.commit()
