@@ -1,24 +1,17 @@
 from fastapi import FastAPI,Response,status,HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from random import randrange
 import time
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from app import models
+from app import models,schemas
 from app.database import ENGINE , get_db
 from sqlalchemy.orm import Session
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=ENGINE)
-
-
-class Post(BaseModel):
-  title: str
-  content: str
-  published: bool = True
-
 
 while True:
   try:
@@ -62,28 +55,28 @@ async def root():
   return {"message":"my name  is angelo"};
 ##---------------- ORM 1st test
 
-@app.get("/sqlalchemy")
-def test_posts(db: Session = Depends(get_db)):
-  posts = db.query(models.Post)
-  print(posts)
-  return {"data":"s"}
+# @app.get("/sqlalchemy")
+# def test_posts(db: Session = Depends(get_db)):
+#   posts = db.query(models.Post)
+#   print(posts)
+#   return {"data":"s"}
 
 
 ##----------- display all 
 
-@app.get("/posts")
+@app.get("/posts",response_model=list[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
 
   # cursor.execute("""SELECT * FROM posts""")
   # posts=cursor.fetchall()
 
   posts = db.query(models.Post).all()
-  return {"data":posts}
+  return posts
 
 ##---------------- creation of post
 
-@app.post("/posts",status_code=status.HTTP_201_CREATED)
-def create_posts(post:Post, db: Session = Depends(get_db)):
+@app.post("/posts",status_code=status.HTTP_201_CREATED,response_model=schemas.Post)
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
 
   # cursor.execute(("""INSERT INTO posts(title,content,published) VALUES (%s,%s,%s) RETURNING * """),(post.title,post.content,post.published))
   # new_post =cursor.fetchone() 
@@ -95,7 +88,7 @@ def create_posts(post:Post, db: Session = Depends(get_db)):
   db.commit()
   db.refresh(new_post)
 
-  return {"data":new_post}; 
+  return new_post
 
 #title str, content str,category,bool idk idk
 
@@ -108,7 +101,7 @@ def get_latest_post():
 
 #---------------- get post by id linear search.
 
-@app.get("/posts/{id}")
+@app.get("/posts/{id}",response_model=schemas.Post)
 def get_post_each(id:int,db: Session = Depends(get_db)):
 
   post = db.query(models.Post).filter(models.Post.id == id).first()
@@ -121,7 +114,7 @@ def get_post_each(id:int,db: Session = Depends(get_db)):
                                       #res.status_code = status.HTTP_404_NOT_FOUND;
                                       #return{"message":f"post with {id} is not found"};
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with invalid id")
-  return {"post_detail":post};
+  return post
 
 
 ##----------deletion of post
@@ -140,12 +133,12 @@ def delete_posts(id: int,db: Session = Depends(get_db)):
   
   post.delete(synchronize_session=False)
   db.commit()
-  return Response(status_code=status.HTTP_204_NO_CONTENT);
+  return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 ##---------- update post by id linear search
 
-@app.put("/posts/{id}")
-def update_post(id: int, updated_post: Post,db: Session = Depends(get_db)):
+@app.put("/posts/{id}",response_model=schemas.Post)
+def update_post(id: int, updated_post: schemas.PostCreate,db: Session = Depends(get_db)):
     
     post_query= db.query(models.Post).filter(models.Post.id==id)
     post=post_query.first()
@@ -168,4 +161,16 @@ def update_post(id: int, updated_post: Post,db: Session = Depends(get_db)):
     post_query.update(updated_post.dict(),synchronize_session=False)
     db.commit()
 
-    return {"data": post_query.first()}
+    return post_query.first()
+
+#-------------OPERATIONS ON USERS TABLE
+
+@app.post("/users",status_code=status.HTTP_201_CREATED)
+def create_user(user: schemas.UserCreate ,db: Session = Depends(get_db)):
+  print(user.model_dump())
+  new_user = models.User(**user.model_dump())
+  db.add(new_user)
+  db.commit()
+  db.refresh(new_user)
+
+  return new_user
