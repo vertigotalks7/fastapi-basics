@@ -1,4 +1,4 @@
-from app import models, schemas, utils
+from app import models, schemas, utils ,OAuth2
 from fastapi import FastAPI,Response,status,HTTPException, Depends, APIRouter
 from app.database import ENGINE , get_db
 from sqlalchemy.orm import Session
@@ -22,12 +22,12 @@ def get_posts(db: Session = Depends(get_db)):
 ##---------------- creation of post
 
 @router.post("/",status_code=status.HTTP_201_CREATED,response_model=schemas.Post)
-def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), user_id: int = Depends(OAuth2.get_current_user)):
 
   # cursor.execute(("""INSERT INTO posts(title,content,published) VALUES (%s,%s,%s) RETURNING * """),(post.title,post.content,post.published))
   # new_post =cursor.fetchone() 
   # conn.commit()
-
+  print(user_id)
   print(post.model_dump())
   new_post = models.Post(**post.model_dump())
   db.add(new_post)
@@ -67,7 +67,7 @@ def get_post_each(id:int,db: Session = Depends(get_db)):
 ##----------deletion of post
 
 @router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
-def delete_posts(id: int,db: Session = Depends(get_db)):
+def delete_posts(id: int,db: Session = Depends(get_db),user_id: int = Depends(OAuth2.get_current_user)):
   
   post = db.query(models.Post).filter(models.Post.id == id)
 
@@ -85,7 +85,7 @@ def delete_posts(id: int,db: Session = Depends(get_db)):
 ##---------- update post by id linear search
 
 @router.put("/{id}",response_model=schemas.Post)
-def update_post(id: int, updated_post: schemas.PostCreate,db: Session = Depends(get_db)):
+def update_post(id: int, updated_post: schemas.PostCreate,db: Session = Depends(get_db),user_id: int = Depends(OAuth2.get_current_user)):
     
     post_query= db.query(models.Post).filter(models.Post.id==id)
     post=post_query.first()

@@ -8,9 +8,10 @@ from psycopg2.extras import RealDictCursor
 from app import models,schemas,utils
 from app.database import ENGINE , get_db
 from sqlalchemy.orm import Session
-from app.routers import post,user
+from app.routers import post,user,auth
 
 app = FastAPI()
+
 models.Base.metadata.create_all(bind=ENGINE)
 
 while True:
@@ -49,6 +50,7 @@ def find_index_post(id):
     
 app.include_router(post.router)
 app.include_router(user.router)
+app.include_router(auth.router)
 
 ##------------- fastapi url test
 
