@@ -1,5 +1,6 @@
 from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=["argon2"],deprecated="auto")
+# Use bcrypt_sha256 to avoid the 72-byte bcrypt limit (it pre-hashes with SHA256)
+pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 
 def hash_password(password: str):
     return pwd_context.hash(password)
