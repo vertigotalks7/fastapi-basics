@@ -1,4 +1,4 @@
-from pydantic import BaseModel,EmailStr
+from pydantic import BaseModel,EmailStr, conint
 from datetime import datetime
 from typing import Optional
 
@@ -15,6 +15,7 @@ class Post(PostBase):
   id: int
   created_at: datetime
   owner_id: int
+  owner: Userout
 
   class Config:
     from_attributes = True
@@ -41,3 +42,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
   id: Optional[int] = None
+
+class Vote(BaseModel):
+  post_id: int
+  dir: conint(le=1) # direction of vote (upvote or downvote)

@@ -1,3 +1,4 @@
+from typing import Optional
 from app import models, schemas, utils ,OAuth2
 from fastapi import FastAPI,Response,status,HTTPException, Depends, APIRouter
 from app.database import ENGINE , get_db
@@ -11,12 +12,13 @@ router = APIRouter(
 ##----------- display all 
 
 @router.get("/",response_model=list[schemas.Post])
-def get_posts(db: Session = Depends(get_db),  current_user : int = Depends(OAuth2.get_current_user)):
+def get_posts(db: Session = Depends(get_db),  current_user : int = Depends(OAuth2.get_current_user), limit: int =10,skip: int = 0,search: Optional[str] = ""):
 
   # cursor.execute("""SELECT * FROM posts""")
   # posts=cursor.fetchall()
+  print(limit)
 
-  posts = db.query(models.Post).all()
+  posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
   return posts
 
 ##---------------- creation of post
