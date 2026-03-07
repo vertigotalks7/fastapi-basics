@@ -3,6 +3,7 @@ from app import models, schemas, utils ,OAuth2
 from fastapi import FastAPI,Response,status,HTTPException, Depends, APIRouter
 from app.database import ENGINE , get_db
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 router = APIRouter(
     prefix="/posts",
@@ -11,14 +12,14 @@ router = APIRouter(
 
 ##----------- display all 
 
-@router.get("/",response_model=list[schemas.Post])
+@router.get("/",response_model=list[schemas.PostOut])
 def get_posts(db: Session = Depends(get_db),  current_user : int = Depends(OAuth2.get_current_user), limit: int =10,skip: int = 0,search: Optional[str] = ""):
 
   # cursor.execute("""SELECT * FROM posts""")
   # posts=cursor.fetchall()
   print(limit)
-
-  posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
+  posts = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
+  print(posts)
   return posts
 
 ##---------------- creation of post
@@ -50,10 +51,12 @@ def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), curren
 
 #---------------- get post by id linear search.
 
-@router.get("/{id}",response_model=schemas.Post)
+@router.get("/{id}",response_model=schemas.PostOut)
 def get_post_each(id:int,db: Session = Depends(get_db), current_user : int = Depends(OAuth2.get_current_user)):
 
-  post = db.query(models.Post).filter(models.Post.id == id).first()
+  #ppiost = db.query(models.Post).filter(models.Post.id == id).first()
+
+  post = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).filter(models.Post.id == id).first()
   print(post)
 
   #cursor.execute("""SELECT * FROM posts WHERE id = %s """,(str(id)))
