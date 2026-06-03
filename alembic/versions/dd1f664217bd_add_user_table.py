@@ -1,4 +1,4 @@
-"""empty message
+""" add user table
 
 Revision ID: dd1f664217bd
 Revises: 9513a618f1ed
@@ -19,10 +19,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Upgrade schema."""
+    op.create_table('users',
+                    sa.Column('id', sa.Integer(), nullable=False),
+                    sa.Column('email', sa.String(), nullable=False),
+                    sa.Column('password', sa.String(), nullable=False),
+                    sa.Column('created_at', sa.DateTime(), nullable=False),
+                    sa.PrimaryKeyConstraint('id'),
+                    sa.UniqueConstraint('email')
+                    )  
     pass
 
 
 def downgrade() -> None:
+    op.drop_table('users')
     """Downgrade schema."""
     pass

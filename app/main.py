@@ -6,7 +6,7 @@ from .config import settings
 
 app = FastAPI()
 
-models.Base.metadata.create_all(bind=ENGINE)
+# models.Base.metadata.create_all(bind=ENGINE)
     
 app.include_router(post.router)
 app.include_router(user.router)
